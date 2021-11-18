@@ -41,7 +41,7 @@ public class Server {
             //close connection
             socket.close();
             //in.close();
-
+            //test
         }catch(IOException i){
             System.out.print(i);
         }
