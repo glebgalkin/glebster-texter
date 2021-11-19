@@ -8,12 +8,18 @@ public class Client {
     private Socket socket = null;
     private Scanner scanner = null;
     private DataOutputStream out = null;
+    private DataInput in = null;
+    String serverResponse = "";
 
     public Client(String address, int port) throws IOException {
 
         try {
+            //taking input from the client socket
             socket = new Socket(address, port);
-            System.out.print("Connected");
+            System.out.println("Connected");
+
+            in = new DataInputStream(
+                    new BufferedInputStream(socket.getInputStream()));
 
             //takes input from terminal
             scanner = new Scanner(System.in);
@@ -21,6 +27,8 @@ public class Client {
             //sends output to the socket
             out = new DataOutputStream(socket.getOutputStream());
 
+            serverResponse = in.readUTF();
+            System.out.println(serverResponse);
 
         } catch (Exception i) {
             System.out.println(i);
@@ -30,7 +38,7 @@ public class Client {
         // string to read message from input
         String line = "";
 
-        while (!line.equals("Stop")) {
+        while (!line.equals(".")) {
 
             try {
                 line = scanner.nextLine();

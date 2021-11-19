@@ -7,6 +7,7 @@ public class Server {
     private Socket socket = null;
     private ServerSocket server = null;
     private DataInput in = null;
+    private DataOutputStream out = null;
 
     public Server(int port){
         try{
@@ -17,6 +18,10 @@ public class Server {
 
             socket = server.accept();
             System.out.println("Client Accepted");
+            out = new DataOutputStream(socket.getOutputStream());
+            String hi = "Welcome to faggot server";
+            out.writeUTF(hi);
+            out.flush();
 
             //taking input from the client socket
             in = new DataInputStream(
@@ -41,7 +46,6 @@ public class Server {
             //close connection
             socket.close();
             //in.close();
-            //test
         }catch(IOException i){
             System.out.print(i);
         }
