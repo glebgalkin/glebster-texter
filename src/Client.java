@@ -5,61 +5,59 @@ import java.util.Scanner;
 public class Client {
 
     //initializing socket
-    private Socket socket = null;
-    private Scanner scanner = null;
-    private DataOutputStream out = null;
-    private DataInput in = null;
-    String serverResponse = "";
+    private Socket socket;
+    private Scanner scanner;
+    private DataOutputStream out;
+    private DataInput in;
+    private String userName;
 
-    public Client(String address, int port) throws IOException {
+    public Client(Socket socket, String userName) throws IOException {
 
         try {
-            //taking input from the client socket
-            socket = new Socket(address, port);
-            System.out.println("Connected");
-
-            in = new DataInputStream(
+            this.socket = socket;
+            this.in = new DataInputStream(
                     new BufferedInputStream(socket.getInputStream()));
-
-            //takes input from terminal
-            scanner = new Scanner(System.in);
-
-            //sends output to the socket
-            out = new DataOutputStream(socket.getOutputStream());
-
-            serverResponse = in.readUTF();
-            System.out.println(serverResponse);
-
+            this.out = new DataOutputStream(socket.getOutputStream());
+            this.userName = userName;
+            out.writeUTF(this.userName);
+            out.flush();
         } catch (Exception i) {
             System.out.println(i);
         }
+    }
 
-
-        // string to read message from input
-        String line = "";
-
-        while (!line.equals(".")) {
-
-            try {
-                line = scanner.nextLine();
-                out.writeUTF(line);
-            } catch (Exception e) {
-                System.out.println(e);
-            }
-        }
-
-        //close the connection
-        try {
-            scanner.close();
-            out.close();
-            socket.close();
-        } catch (Exception o) {
-            System.out.println(o);
+    public void sendMessage() throws IOException {
+        scanner = new Scanner(System.in);
+        while (socket.isConnected()) {
+            String messageToSend = scanner.nextLine();
+            out.writeUTF(userName + ": " + messageToSend);
+            out.flush();
         }
     }
 
+    public void listenForMessage() {
+        new Thread(() -> {
+            String messageFromGroupChat;
+
+            while (socket.isConnected()) {
+                try {
+                    messageFromGroupChat = in.readUTF();
+                    System.out.println(messageFromGroupChat);
+                } catch (IOException e) {
+                    System.out.println(e);
+                }
+            }
+        }).start();
+    }
+
     public static void main(String[] args) throws IOException {
-        Client client = new Client("127.0.0.1", 5000);
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Enter your user name: ");
+        String userName = scanner.nextLine();
+        Socket sc = new Socket("localhost", 5000);
+        Client client = new Client(sc, userName);
+        client.listenForMessage();
+        client.sendMessage();
     }
 
 }

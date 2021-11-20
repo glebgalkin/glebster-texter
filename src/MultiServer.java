@@ -1,9 +1,11 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
 public class MultiServer {
     private ServerSocket serverSocket;
     private Socket socket;
+    public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
 
     public MultiServer(int port) throws IOException {
         serverSocket = new ServerSocket(port);
@@ -11,44 +13,58 @@ public class MultiServer {
         System.out.println("Waiting for the client");
         while (true) {
             socket = serverSocket.accept();
-            System.out.println("Client Accepted");
             ClientHandler ch = new ClientHandler(socket);
+            clientHandlers.add(ch);
             ch.start();
         }
     }
 
     private static class ClientHandler extends Thread {
         private Socket socket;
-        private DataOutputStream out = null;
+        private DataOutputStream out;
         private DataInput in = null;
+        private String userName;
 
         public ClientHandler(Socket socket) {
-            this.socket = socket;
+            try {
+                this.socket = socket;
+                this.out = new DataOutputStream(socket.getOutputStream());
+                this.in = new DataInputStream(
+                        new BufferedInputStream(socket.getInputStream()));
+                this.userName = in.readUTF();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         public void run() {
             try {
-                out = new DataOutputStream(socket.getOutputStream());
-                String hi = "Welcome to faggot server";
-                out.writeUTF(hi);
-                in = new DataInputStream(
-                        new BufferedInputStream(socket.getInputStream()));
+                System.out.println("User " + this.userName + " entered the chat.");
+                broadcastMessage("User " + this.userName + " entered the chat.");
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            String line = "";
-            try {
-                while (!line.equals("Over")) {
-
-                    line = in.readUTF();
-                    System.out.println(line);
+            String messageFromTheClient;
+            while (socket.isConnected()) {
+                try {
+                    messageFromTheClient = in.readUTF();
+                    System.out.println("SERVER RECEIVED: " + messageFromTheClient);
+                    broadcastMessage(messageFromTheClient);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-                System.out.println("Closing connection");
-                socket.close();
-            } catch (IOException i) {
-                System.out.println(i);
             }
         }
+
+        public void broadcastMessage(String message) throws IOException {
+            for (ClientHandler clientHandler : clientHandlers) {
+                if (!clientHandler.userName.equals(userName)){
+                    clientHandler.out.writeUTF(message);
+                    clientHandler.out.flush();
+                }
+            }
+        }
+
     }
 
     public static void main(String[] args) throws IOException {
